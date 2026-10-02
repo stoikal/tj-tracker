@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TransJakarta Live — 4K &amp; 10</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <header>
+        <h1>TransJakarta Live</h1>
+        <p class="sub">Routes 4K &amp; 10 &mdash; realtime positions</p>
+        <div id="status" class="status">
+          <span id="status-dot" class="dot"></span>
+          <span id="status-text">connecting&hellip;</span>
+        </div>
+      </header>
+
+      <section class="counts">
+        <div class="count blue"><span id="count-4k">0</span><label>4K buses</label></div>
+        <div class="count red"><span id="count-10">0</span><label>10 buses</label></div>
+      </section>
+
+      <section>
+        <h2>Shelter shortcuts <span class="hint">keys 1&ndash;2</span></h2>
+        <div id="shelter-buttons"></div>
+      </section>
+
+      <section class="buses">
+        <h2>Buses <span class="hint" id="bus-updated"></span></h2>
+        <div id="bus-list"></div>
+      </section>
+
+      <section class="legend">
+        <h2>Legend</h2>
+        <div class="legend-row"><span class="chip blue">4K</span> Pulo Gadung &harr; Kejaksaan Agung</div>
+        <div class="legend-row"><span class="chip red">10</span> Tanjung Priok &harr; PGC</div>
+        <label class="toggle"><input type="checkbox" id="toggle-lines" checked> Show route lines</label>
+        <label class="toggle"><input type="checkbox" id="toggle-direction" checked> <span id="direction-toggle-label">Direction filter</span></label>
+      </section>
+
+      <footer>
+        Data: TransJakarta public MQTT feed (<code>wss://mqtt.tj.co.id</code>) + GTFS.
+        Unofficial &mdash; not affiliated with PT Transportasi Jakarta.
+      </footer>
+    </aside>
+    <main id="map"></main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/mqtt@5.10.4/dist/mqtt.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

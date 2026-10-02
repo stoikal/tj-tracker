@@ -1,0 +1,408 @@
+:root {
+  --bg: #10151c;
+  --panel: #171e27;
+  --panel-2: #1d2632;
+  --text: #e8edf3;
+  --muted: #8b98a7;
+  --border: #2a3543;
+  --blue: #2f6bff;
+  --red: #e2372f;
+  --green: #2fbf71;
+  --amber: #eab308;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ---------- sidebar ---------- */
+
+#sidebar {
+  width: 340px;
+  min-width: 340px;
+  height: 100%;
+  overflow-y: auto; /* fallback for very short windows */
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#sidebar > section { flex: 0 0 auto; }
+
+/* The bus list absorbs leftover height and scrolls on its own. */
+#sidebar > section.buses {
+  flex: 1 1 auto;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+#sidebar h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.2px;
+}
+
+#sidebar .sub {
+  margin: 2px 0 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+#sidebar h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+#sidebar .hint {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex: none;
+}
+.dot.ok { background: var(--green); }
+.dot.bad { background: var(--red); }
+
+.counts {
+  display: flex;
+  gap: 10px;
+}
+
+.count {
+  flex: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.count span {
+  display: block;
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.1;
+}
+
+.count label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.count.blue span { color: var(--blue); }
+.count.red span { color: var(--red); }
+
+/* ---------- shelter shortcuts ---------- */
+
+.shelter-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--blue);
+  border-radius: 10px;
+  padding: 9px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.shelter-btn.route-10 { border-left-color: var(--red); }
+.shelter-btn:hover { background: #24303e; }
+.shelter-btn:active { transform: scale(0.985); }
+
+.shelter-btn .name {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.shelter-btn .detail {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.shelter-btn .eta {
+  font-size: 11.5px;
+  margin-top: 4px;
+  color: var(--green);
+  min-height: 14px;
+}
+.shelter-btn .eta.none { color: var(--muted); }
+
+/* ---------- bus list ---------- */
+
+#bus-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.bus-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bus-row:hover { background: #24303e; }
+.bus-row.stale { opacity: 0.45; }
+
+.bus-row .chip { flex: none; }
+
+.bus-row .info { flex: 1; min-width: 0; }
+
+.bus-row .no {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bus-row .dest {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bus-row .eta {
+  font-size: 11.5px;
+  color: var(--green);
+  text-align: right;
+  flex: none;
+  max-width: 92px;
+}
+
+.chip {
+  display: inline-block;
+  min-width: 34px;
+  text-align: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.chip.blue { background: var(--blue); }
+.chip.red { background: var(--red); }
+
+.empty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 2px;
+}
+
+/* ---------- legend / footer ---------- */
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+footer {
+  margin-top: auto;
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+/* ---------- map ---------- */
+
+#map {
+  flex: 1;
+  height: 100%;
+  background: #0d1117;
+}
+
+/* Bus arrow markers (rotated divIcon). */
+.bus-icon {
+  background: none;
+  border: none;
+}
+
+.bus-arrow {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(var(--rot, 0deg));
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 2px 6px rgba(0, 0, 0, 0.45);
+  transition: opacity 0.3s;
+}
+
+.bus-arrow svg { display: block; }
+
+.bus-arrow.blue { background: var(--blue); }
+.bus-arrow.red { background: var(--red); }
+.bus-arrow.stale { opacity: 0.35; }
+
+.bus-arrow .badge {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%) rotate(calc(-1 * var(--rot, 0deg)));
+  background: rgba(16, 21, 28, 0.88);
+  color: #fff;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Shelter pin markers. */
+.shelter-icon {
+  background: none;
+  border: none;
+}
+
+.shelter-pin {
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border: 3px solid #10151c;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.shelter-pin.blue { background: var(--blue); }
+.shelter-pin.red { background: var(--red); }
+
+.shelter-label {
+  position: absolute;
+  top: 21px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 21, 28, 0.92);
+  border: 1px solid var(--border);
+  color: #fff;
+  font-size: 10.5px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+/* Leaflet popup theming. */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.popup h3 {
+  margin: 0 0 4px;
+  font-size: 13.5px;
+}
+
+.popup .muted { color: var(--muted); }
+
+.popup table {
+  border-collapse: collapse;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.popup td {
+  padding: 1px 0;
+  vertical-align: top;
+}
+
+.popup td.k {
+  color: var(--muted);
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
+.popup .eta-list { margin-top: 6px; }
+.popup .eta-list div { white-space: nowrap; }
+
+@media (max-width: 760px) {
+  #app { flex-direction: column; }
+  #sidebar {
+    width: 100%;
+    min-width: 0;
+    height: 45%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}

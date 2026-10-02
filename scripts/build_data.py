@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""Build js/data.js for the TJ tracker from a GTFS feed.
+
+Usage:
+    python3 scripts/build_data.py [--gtfs DIR] [--out FILE]
+
+Defaults: GTFS at ~/.hermes/cache/scratch/tj_gtfs (downloaded from
+https://gtfs.transjakarta.co.id/files/file_gtfs.zip), output js/data.js.
+
+Emits:
+  - shelter configs for the 4 watched halte (route + direction specific gates)
+  - simplified shape polylines for routes 4K and 10 (main directional trips)
+"""
+
+import argparse
+import csv
+import json
+import math
+import os
+from collections import defaultdict
+
+# The watched shelters. gate_id is the direction-specific GTFS stop (gate)
+# used by trips heading to `dest`; parent_id is the halte complex.
+SHELTERS = [
+    {
+        "id": "beacukai-4k-ka",
+        "label": "Ahmad Yani Bea Cukai 1",
+        "detail": "4K \u2192 Kejaksaan Agung",
+        "route": "4K",
+        "dest": "Kejaksaan Agung",
+        "gate_id": "B06534P",
+        "parent_id": "",
+    },
+    {
+        "id": "pisangan-10-pgc",
+        "label": "Pisangan",
+        "detail": "10 \u2192 PGC",
+        "route": "10",
+        "dest": "PGC",
+        "gate_id": "G00460",
+        "parent_id": "H00002P",
+    },
+]
+
+# Main directional trips whose shapes are drawn as the route lines.
+TRIP_SHAPES = [
+    {"trip_id": "4K-R06", "route": "4K", "headsign": "Kejaksaan Agung"},
+    {"trip_id": "4K-R07", "route": "4K", "headsign": "Pulo Gadung"},
+    {"trip_id": "10-R01", "route": "10", "headsign": "PGC"},
+    {"trip_id": "10-R02", "route": "10", "headsign": "Tanjung Priok"},
+]
+
+
+def rdp(points, eps):
+    """Ramer-Douglas-Peucker simplification on [(lat, lon), ...]."""
+    if len(points) < 3:
+        return points
+
+    def _rdp(pts):
+        if len(pts) < 3:
+            return pts
+        x1, y1 = pts[0]
+        x2, y2 = pts[-1]
+        dx, dy = x2 - x1, y2 - y1
+        denom = math.hypot(dx, dy)
+        max_d, idx = -1.0, 0
+        for i in range(1, len(pts) - 1):
+            x0, y0 = pts[i]
+            if denom == 0:
+                d = math.hypot(x0 - x1, y0 - y1)
+            else:
+                d = abs(dy * x0 - dx * y0 + x2 * y1 - y2 * x1) / denom
+            if d > max_d:
+                max_d, idx = d, i
+        if max_d > eps:
+            return _rdp(pts[: idx + 1])[:-1] + _rdp(pts[idx:])
+        return [pts[0], pts[-1]]
+
+    return _rdp(points)
+
+
+def load_csv(path):
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    default_gtfs = os.path.expanduser("~/.hermes/cache/scratch/tj_gtfs")
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ap.add_argument("--gtfs", default=default_gtfs)
+    ap.add_argument("--out", default=os.path.join(here, "js", "data.js"))
+    ap.add_argument("--eps", type=float, default=8e-5,
+                    help="RDP epsilon in degrees (~8 m)")
+    args = ap.parse_args()
+
+    stops = {s["stop_id"]: s for s in load_csv(os.path.join(args.gtfs, "stops.txt"))}
+    trips = {t["trip_id"]: t for t in load_csv(os.path.join(args.gtfs, "trips.txt"))}
+
+    # Shelters: coordinates from the gate stop (fall back to parent station).
+    shelters = []
+    for cfg in SHELTERS:
+        s = stops.get(cfg["gate_id"]) or stops.get(cfg["parent_id"])
+        if not s:
+            raise SystemExit(f"stop not found for shelter {cfg['id']}")
+        entry = dict(cfg)
+        entry["stop_name"] = s["stop_name"]
+        entry["lat"] = float(s["stop_lat"])
+        entry["lon"] = float(s["stop_lon"])
+        parent = stops.get(cfg["parent_id"])
+        if parent:
+            entry["lat"] = float(parent["stop_lat"])
+            entry["lon"] = float(parent["stop_lon"])
+            entry["halte"] = parent["stop_name"]
+        shelters.append(entry)
+
+    # Shapes per trip (shapes are unique per trip in this feed).
+    shape_pts = defaultdict(list)
+    with open(os.path.join(args.gtfs, "shapes.txt"), encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            shape_pts[row["shape_id"]].append(
+                (int(row["shape_pt_sequence"]),
+                 float(row["shape_pt_lat"]), float(row["shape_pt_lon"]))
+            )
+
+    lines = []
+    for spec in TRIP_SHAPES:
+        trip = trips[spec["trip_id"]]
+        pts = sorted(shape_pts[trip["shape_id"]])
+        coords = [(lat, lon) for _, lat, lon in pts]
+        simplified = rdp(coords, args.eps)
+        lines.append({
+            "route": spec["route"],
+            "headsign": spec["headsign"],
+            "trip_id": spec["trip_id"],
+            "coords": [[round(lat, 6), round(lon, 6)] for lat, lon in simplified],
+        })
+        print(f"{spec['trip_id']}: {len(coords)} pts -> {len(simplified)}")
+
+    out = {
+        "generated_from": "GTFS " + args.gtfs,
+        "shelters": shelters,
+        "route_lines": lines,
+    }
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    with open(args.out, "w", encoding="utf-8") as f:
+        f.write("// Generated by scripts/build_data.py - do not edit by hand.\n")
+        f.write("window.TJ_DATA = ")
+        json.dump(out, f, ensure_ascii=False)
+        f.write(";\n")
+    print("wrote", args.out)
+
+
+if __name__ == "__main__":
+    main()
