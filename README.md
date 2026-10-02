@@ -29,6 +29,46 @@ python3 -m http.server 8756
 No build step. External dependencies are CDN-loaded: Leaflet 1.9.4 and
 mqtt.js 5.x.
 
+## Deploy
+
+The page is pure static files (`index.html`, `css/`, `js/`) — no build step,
+no secrets, no API keys. Any static host works.
+
+**Netlify Drop (fastest):** open https://app.netlify.com/drop and drag the
+`tj-tracker` folder in. You get an `https://<random>.netlify.app` URL.
+
+**GitHub Pages (free + versioned):**
+
+```bash
+cd ~/Projects/personal/tj-tracker
+git init && git add -A && git commit -m "TJ tracker"
+gh repo create tj-tracker --public --source=. --push   # or push to a repo made on github.com
+```
+
+Then in the repo: Settings → Pages → Source "Deploy from a branch" →
+`main` / `/ (root)`. Live at `https://<user>.github.io/tj-tracker/`.
+Cloudflare Pages / Vercel: connect the repo, build command empty,
+output dir `/`.
+
+**Own server / LAN:**
+
+```bash
+rsync -av --exclude .git ~/Projects/personal/tj-tracker/ user@host:~/tj-tracker/
+ssh user@host 'cd ~/tj-tracker && python3 -m http.server 8756'
+```
+
+(or point nginx/caddy at the folder).
+
+Deployment notes:
+
+- HTTPS hosting is fine and preferred. The page connects to the anonymous
+  `wss://mqtt.tj.co.id:8084/mqtt` feed and OSM tiles — no CORS or mixed-content
+  issues from any origin.
+- Leaflet 1.9.4 and mqtt.js 5.x load from unpkg; to work offline of unpkg,
+  vendor them into `js/vendor/` and update the `<script>`/`<link>` tags.
+- No runtime maintenance. Only rerun `scripts/build_data.py` when TransJakarta
+  republishes GTFS (see below) — matters when routes/shelters change.
+
 ## Data sources (TransJakarta public endpoints)
 
 | Data | Source |
